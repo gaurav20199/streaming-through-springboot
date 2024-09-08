@@ -3,6 +3,7 @@ package com.stream.streaming_backend.service.intf;
 import com.stream.streaming_backend.dto.VideoMetaData;
 import com.stream.streaming_backend.entities.Video;
 import com.stream.streaming_backend.repository.VideoRepository;
+import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -12,10 +13,14 @@ public interface VideoService {
 
     void save(VideoMetaData videoMetaData, MultipartFile file) throws Exception;
 
-    Optional<Video> getVideoById(long id);
+    Video getVideoById(String id);
 
     List<Video> getVideosByTitle(String title);
 
     List<Video> getVideosByRating(double rating);
+
+    Resource streamEntireVideo(String videoId);
+
+    byte[] streamVideoInChunks(Resource videoResource,long startRange);
 
 }
