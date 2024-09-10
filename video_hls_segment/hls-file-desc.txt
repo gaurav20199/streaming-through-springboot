@@ -1,0 +1,2 @@
+The parent directory will be used for storing video segments and it's master file. There will be subdirectories
+based on video uuid which will have all the segments and the master file. We can also have videos in different resolutions here.
