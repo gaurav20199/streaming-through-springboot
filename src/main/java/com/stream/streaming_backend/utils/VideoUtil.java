@@ -4,8 +4,6 @@ import com.stream.streaming_backend.entities.Video;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-
 import java.nio.file.Path;
 
 public class VideoUtil {
