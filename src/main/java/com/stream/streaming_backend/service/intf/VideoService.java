@@ -11,7 +11,9 @@ import java.util.Optional;
 
 public interface VideoService {
 
-    void save(VideoMetaData videoMetaData, MultipartFile file) throws Exception;
+    Video save(VideoMetaData videoMetaData, MultipartFile file) throws Exception;
+
+    void saveAndProcessVideo(VideoMetaData videoMetaData, MultipartFile file) throws Exception;
 
     Video getVideoById(String id);
 

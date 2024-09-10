@@ -6,6 +6,7 @@ import com.stream.streaming_backend.utils.VideoUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,9 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/v1/video")
@@ -30,6 +34,8 @@ public class VideoController {
 
     @Value("${video.chunk-size}")
     private long chunkSize;
+    @Value("${video.hls.segments}")
+    private String hlsDirectory;
 
     @PostMapping("/upload")
     public ResponseEntity<?> uploadVideo(@RequestParam("file") MultipartFile file,@RequestParam String title,
@@ -37,7 +43,7 @@ public class VideoController {
         System.out.println(contentType);
         VideoMetaData videoMetaData = VideoMetaData.builder().description(description).title(title).videoType(contentType).build();
         try {
-            service.save(videoMetaData, file);
+            service.saveAndProcessVideo(videoMetaData, file);
         }catch (Exception e) {
             //TODO Handle custom exceptions properly
             return new ResponseEntity<>("Error occurred while uploading the file",HttpStatus.INTERNAL_SERVER_ERROR);
@@ -69,4 +75,56 @@ public class VideoController {
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred");
     }
+
+    @GetMapping("/stream/v3/{videoId}/master")
+    public ResponseEntity<Resource> getMasterFile(@PathVariable String videoId) {
+        Path masterFilePath = Paths.get(hlsDirectory + videoId,"master.m3u8");
+        if (!Files.exists(masterFilePath)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        Resource resource = new FileSystemResource(masterFilePath);
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.apple.mpegurl")
+                .body(resource);
+    }
+
+    @GetMapping("/stream/v3/{videoId}/{playlist}/playlist.m3u8")
+    public ResponseEntity<Resource> serveSegments(@PathVariable String videoId, @PathVariable String playlist) {
+        Path segmentsPath = Paths.get(hlsDirectory, videoId, playlist,  "playlist.m3u8");
+        if (!Files.exists(segmentsPath)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        Resource resource = new FileSystemResource(segmentsPath);
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/vnd.apple.mpegurl")
+                .body(resource);
+    }
+
+    @GetMapping("/stream/v3/{videoId}/{playlist}/{segment}.ts")
+    public ResponseEntity<Resource> serveSegments(@PathVariable String videoId, @PathVariable String playlist,@PathVariable String segment) {
+        Path segmentsPath = Paths.get(hlsDirectory, videoId, playlist,  segment + ".ts");
+        if (!Files.exists(segmentsPath)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        Resource resource = new FileSystemResource(segmentsPath);
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_TYPE, "video/mp2t")
+                .body(resource);
+    }
+
+/*    @GetMapping("/stream/v3/{videoId}/{segment}.ts")
+    public ResponseEntity<Resource> serveSegments(@PathVariable String videoId, @PathVariable String segment) {
+        Path segmentsPath = Paths.get(hlsDirectory, videoId, "segments",segment + ".ts");
+        if (!Files.exists(segmentsPath)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        Resource resource = new FileSystemResource(segmentsPath);
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.CONTENT_TYPE, "video/mp2t")
+                .body(resource);
+    }*/
 }
